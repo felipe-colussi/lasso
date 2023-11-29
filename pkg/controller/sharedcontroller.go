@@ -2,6 +2,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	r "runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -110,6 +113,7 @@ func (s *sharedController) Start(ctx context.Context, workers int) error {
 
 func (s *sharedController) RegisterHandler(ctx context.Context, name string, handler SharedControllerHandler) {
 	// Ensure that controller is initialized
+	ctx = AddCallerToContext(ctx, name)
 	c := s.initController()
 
 	getHandlerTransaction(ctx).do(func() {
@@ -123,4 +127,35 @@ func (s *sharedController) RegisterHandler(ctx context.Context, name string, han
 			}
 		}
 	})
+}
+
+func AddCallerToContext(ctx context.Context, name string) context.Context {
+	//caller HERE .
+	keep := true
+	arr := []string{}
+	for i := 1; keep; i++ {
+		_, file, line, ok := r.Caller(i)
+		index := strings.Index(file, "/rancher")
+		if index != -1 {
+			file = file[index:]
+		}
+		arr = append(arr, fmt.Sprintf("%s - %d", file, line))
+		if strings.Contains(file, "/rancher") {
+			if strings.Contains(file, "vendor") || strings.Contains(file, "wrangler") ||
+				strings.Contains(file, "lasso") || strings.Contains(file, "generated") {
+				continue
+			}
+			ctx = contextWithCaller(ctx, file, line)
+			break
+		}
+		if !ok {
+			ctx = contextWithCaller(ctx, "unknown", 0)
+			keep = ok
+		}
+	}
+
+	if name == "kubernetes-provider" {
+		fmt.Println("asd") // GET NAME
+	}
+	return ctx
 }

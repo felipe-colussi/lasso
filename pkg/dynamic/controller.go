@@ -104,6 +104,8 @@ func (c *Controller) AddIndexer(name string, matcher GVKMatcher, indexer func(ob
 }
 
 func (c *Controller) OnChange(ctx context.Context, name string, matcher GVKMatcher, handler Handler) {
+	ctx = controller.AddCallerToContext(ctx, name)
+
 	c.handler.Register(ctx, name, wrap(matcher, handler))
 	c.handlers.Add(ctx, &handlerEntry{
 		matcher: matcher,

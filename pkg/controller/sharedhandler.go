@@ -34,9 +34,11 @@ type SharedHandler struct {
 	handlers []handlerEntry
 }
 
+// HERE !!!!
 func (h *SharedHandler) Register(ctx context.Context, name string, handler SharedControllerHandler) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
+	debugMap.Log(ctx, name, h.controllerGVR)
 
 	id := atomic.AddInt64(&h.idCounter, 1)
 	h.handlers = append(h.handlers, handlerEntry{
